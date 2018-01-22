@@ -5,8 +5,8 @@
 (require 2htdp/image)
 
 ; 1. a.
-(define WIDTH-OF-WORLD 600)
-(define HEIGHT-OF-WORLD 400)
+(define WIDTH-OF-WORLD 500)
+(define HEIGHT-OF-WORLD 300)
 
 (define WHEEL-RADIUS 10)
 (define WHEEL-DISTANCE (* WHEEL-RADIUS 6))
