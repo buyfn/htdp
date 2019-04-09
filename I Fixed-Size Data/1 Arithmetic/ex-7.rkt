@@ -5,3 +5,9 @@
 (define friday #false)
 
 (or (not sunny) friday)
+
+; 4 combinations of booleans are possible:
+; sunny: true,  friday: true
+; sunny: false, friday: false
+; sunny: false, friday: true
+; sunny: true,  friday: false
