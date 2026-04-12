@@ -37,7 +37,7 @@
 ; launches the program from some initial state
 (define (main ws)
   (big-bang ws
-    [on-tick traffic-light-next]
+    [on-tick traffic-light-next 2]
     [to-draw render]))
 
 (main "yellow")
