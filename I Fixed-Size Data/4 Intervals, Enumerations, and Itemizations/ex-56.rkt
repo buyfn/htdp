@@ -72,11 +72,26 @@
 (define (show-rocket x)
   (place-image ROCKET 10 (- x CENTER) BACKG))
 
+; LRCD -> Boolean
+; returns true when rocket reaches the top
+(check-expect (reached-top? "resting") #false)
+(check-expect (reached-top? "-3") #false)
+(check-expect (reached-top? 11) #false)
+(check-expect (reached-top? HEIGHT) #false)
+(check-expect (reached-top? 0) #true)
+(define (reached-top? x)
+  (cond
+    [(string? x) #false]
+    [(<= -3 x -1) #false]
+    [(> x 0) #false]
+    [(= x 0) #true]))
+
 ; LRCD -> LRCD
 (define (main1 s)
   (big-bang s
     [to-draw show]
     [on-key launch]
-    [on-tick fly 1]))
+    [on-tick fly]
+    [stop-when reached-top?]))
 
 (main1 "resting")
