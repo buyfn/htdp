@@ -8,12 +8,16 @@
 (define GRAVITY 1)
 (define BOUNCE-HARDNESS 0.95)
 
-; Velocity has 2 components
-; - dx speed and direction along x
-; - dy speed and direction along y
+; Vel is a structure
+; (make-vel Number Number)
+; interpretation (make-vel dx dy) means a velocity of
+; dx pixels [per tick] along the horizontal and
+; dy pixels [per tick] along the vertical direction
 (define-struct vel [dx dy])
 
-; Ball - [Posn Velocity]
+; Ball is a structure
+; (make-ball Position Velocity String)
+; interpretation a ball object with position, velocity and color
 (define-struct ball [pos vel col])
 
 ; A WorldState is a list of Balls
