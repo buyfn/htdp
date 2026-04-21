@@ -129,24 +129,6 @@
 (define (string-remove-last str)
   (substring str 0 (- (string-length str) 1)))
 
-; String -> String
-; removes the first character from a string
-(check-expect (string-remove-first "abc") "bc")
-(define (string-remove-first str)
-  (substring str 1))
-
-; String -> 1String
-; returns the last character of a string
-(check-expect (string-last "abc") "c")
-(define (string-last str)
-  (substring str (- (string-length str) 1)))
-
-; String -> 1String
-; returns the first character of a string
-(check-expect (string-first "abc") "a")
-(define (string-first str)
-  (substring str 0 1))
-
 ; String 1String Number -> String
 ; returns a string with a new character insrted at given index of initial string
 (check-expect (string-insert-at "ab" "c" 1) "acb")
