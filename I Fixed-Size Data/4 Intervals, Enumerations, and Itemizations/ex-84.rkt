@@ -4,6 +4,8 @@
 (define CURSOR (rectangle 1 20 "solid" "red"))
 (define TEXT-SIZE 11)
 (define TEXT-COLOR "black")
+(define SCENE-WIDTH 200)
+(define SCENE-HEIGHT 20)
 
 (define-struct editor [pre post])
 ; An Editor is a structure:
@@ -20,14 +22,17 @@
                                            (text "hello " 11 "black")
                                            CURSOR
                                            (text "world" 11 "black"))
-                             (empty-scene 200 20)))
+                             (empty-scene SCENE-WIDTH SCENE-HEIGHT)))
 (define (render state)
   (overlay/align "left" "center"
-                 (beside/align "center"
-                               (text (editor-pre state) TEXT-SIZE TEXT-COLOR)
-                               CURSOR
-                               (text (editor-post state) TEXT-SIZE TEXT-COLOR))
-                 (empty-scene 200 20)))
+                 (render-text state)
+                 (empty-scene SCENE-WIDTH SCENE-HEIGHT)))
+
+(define (render-text state)
+  (beside/align "center"
+                (text (editor-pre state) TEXT-SIZE TEXT-COLOR)
+                CURSOR
+                (text (editor-post state) TEXT-SIZE TEXT-COLOR))) 
 
 ; Editor KeyEvent -> Editor
 ; Produces updated editor based on key pressed;
@@ -42,13 +47,44 @@
 (check-expect (edit (make-editor "a" "b") "\b")
               (make-editor "" "b"))
 ; deleting a character at cursor position 0
-(check-expect (edit (make-editor "a" "b") "\b")
-              (make-editor "" "b"))
+(check-expect (edit (make-editor "" "ab") "\b")
+              (make-editor "" "ab"))
 ; moving cursor left at cursor position 0
+(check-expect (edit (make-editor "" "ab") "left")
+              (make-editor "" "ab"))
 (check-expect (edit (make-editor "a" "b") "left")
               (make-editor "" "ab"))
 (check-expect (edit (make-editor "a" "b") "right")
               (make-editor "ab" ""))
+; right at end (post is empty)
+(check-expect (edit (make-editor "ab" "") "right")
+              (make-editor "ab" ""))
+; tab key ignored
+(check-expect (edit (make-editor "a" "b") "\t")
+              (make-editor "a" "b"))
+; return key ignored
+(check-expect (edit (make-editor "a" "b") "\r")
+              (make-editor "a" "b"))
+; other ignored keys
+(check-expect (edit (make-editor "a" "b") "escape")
+              (make-editor "a" "b"))
+(check-expect (edit (make-editor "a" "b") "up")
+              (make-editor "a" "b"))
+(check-expect (edit (make-editor "a" "b") "down")
+              (make-editor "a" "b"))
+; empty editor
+(check-expect (edit (make-editor "" "") "c")
+              (make-editor "c" ""))
+(check-expect (edit (make-editor "" "") "\b")
+              (make-editor "" ""))
+(check-expect (edit (make-editor "" "") "left")
+              (make-editor "" ""))
+(check-expect (edit (make-editor "" "") "right")
+              (make-editor "" ""))
+; backspace with multiple chars in pre
+(check-expect (edit (make-editor "abc" "d") "\b")
+              (make-editor "ab" "d"))
+
 (define (edit ed ke)
   (cond
     [(string=? "\t" ke) ed]
@@ -74,8 +110,15 @@
                      (string-remove-first (editor-post ed)))]
        [else ed])]
     [(= (string-length ke) 1)
-     (make-editor (string-append (editor-pre ed) ke)
-                  (editor-post ed))]
+     (cond
+       [(> (image-width
+            (render-text (make-editor (string-append (editor-pre ed) ke)
+                                      (editor-post ed))))
+           SCENE-WIDTH)
+        ed]
+       [else
+        (make-editor (string-append (editor-pre ed) ke)
+                     (editor-post ed))])]
     [else ed]))
 
 ; Editor -> Editor
