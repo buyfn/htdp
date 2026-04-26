@@ -55,9 +55,65 @@
     [(armadillo? animal)
      (fits-box? (armadillo-box-size animal) cage)]))
 
+; Spider fits inside cage
+(check-expect (fits? (make-spider 8 (make-box 2 2 1))
+                     (make-box 5 5 5))
+              #true)
+; Spider does not fit (box-size exceeds cage)
+(check-expect (fits? (make-spider 8 (make-box 6 2 1))
+                     (make-box 5 5 5))
+              #false)
+; Spider exact fit
+(check-expect (fits? (make-spider 8 (make-box 5 5 5))
+                     (make-box 5 5 5))
+              #true)
+
+; Elephant (Box) fits inside cage
+(check-expect (fits? (make-box 3 4 5)
+                     (make-box 10 10 10))
+              #true)
+; Elephant does not fit (height too tall)
+(check-expect (fits? (make-box 3 4 11)
+                     (make-box 10 10 10))
+              #false)
+; Elephant exact fit
+(check-expect (fits? (make-box 10 10 10)
+                     (make-box 10 10 10))
+              #true)
+
+; Boa fits (length→width, girth→depth & height)
+(check-expect (fits? (make-boa 5 2)
+                     (make-box 10 5 5))
+              #true)
+; Boa does not fit (length exceeds cage width)
+(check-expect (fits? (make-boa 15 2)
+                     (make-box 10 5 5))
+              #false)
+; Boa does not fit (girth exceeds cage depth)
+(check-expect (fits? (make-boa 5 6)
+                     (make-box 10 5 5))
+              #false)
+; Boa exact fit
+(check-expect (fits? (make-boa 10 5)
+                     (make-box 10 5 5))
+              #true)
+
+; Armadillo fits inside cage
+(check-expect (fits? (make-armadillo "Amy" (make-box 2 3 2))
+                     (make-box 5 5 5))
+              #true)
+; Armadillo does not fit
+(check-expect (fits? (make-armadillo "Amy" (make-box 6 3 2))
+                     (make-box 5 5 5))
+              #false)
+; Armadillo exact fit
+(check-expect (fits? (make-armadillo "Amy" (make-box 5 5 5))
+                     (make-box 5 5 5))
+              #true)
+
 ; Box Box -> Boolean
 ; Returns true if the first box fits inside of second box
 (define (fits-box? b1 b2)
   (and (<= (box-width b1) (box-width b2))
-       (<= (box-depth b1) (box-width b2))
+       (<= (box-depth b1) (box-depth b2))
        (<= (box-height b1) (box-height b2))))
