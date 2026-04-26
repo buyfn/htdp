@@ -87,68 +87,36 @@
 
 ; MissileOrNot Image -> Image
 ; adds an image of missile m to scene s
+(check-expect (missile-render.v2 #false BACKGROUND) BACKGROUND)
+(check-expect (missile-render.v2 (make-posn 30 40) BACKGROUND)
+              (place-image MISSILE 30 40 BACKGROUND))
 (define (missile-render.v2 m s)
   (cond
-    [(false? m) s]
+    [(boolean? m) s]
     [else (place-image MISSILE (posn-x m) (posn-y m) s)]))
 
-; SIGS -> Image
-; renders the given game state on top of BACKGROUND
-(define (si-render s)
-  (cond
-    [(aim? s)
-     (tank-render (aim-tank s)
-                  (ufo-render (aim-ufo s) BACKGROUND))]
-    [(fired? s)
-     (tank-render
-      (fired-tank s)
-      (ufo-render (fired-ufo s)
-                  (missile-render (fired-missile s)
-                                  BACKGROUND)))]))
-; SIGS -> Image
+; SIGS.v2 -> Image
+; renders game state on top of BAKGROUND
+(define (si-render.v2 s)
+  (tank-render (sigs-tank s)
+               (ufo-render (sigs-ufo s)
+                           (missile-render.v2 (sigs-missile s)
+                                              BACKGROUND))))
+
+; SIGS.v2 -> Image
 ; renders the final screen
-(define (si-render-final s)
-  (cond
-    [(aim? s)
-     (place-image/align (above (text "Game over." 24 "black")
-                               (text "You lost." 24 "black"))
+(define (si-render-final.v2 s)
+  (place-image/align (above (text "Game over" 24 "black")
+                            (cond
+                              [(close-enough?.v2 (sigs-ufo s) (sigs-missile s))
+                               (text "You win" 24 "black")]
+                              [else
+                               (text "You lost" 24 "black")]))
                         (/ WIDTH-OF-WORLD 2)
                         (/ HEIGHT-OF-WORLD 2)
                         "middle"
                         "center"
-                        (aim-render s))]
-    [(fired? s)
-     (cond
-       [(close-enough? (fired-ufo s) (fired-missile s))
-        (place-image/align (above (text "Game over." 24 "black")
-                                  (text "You win." 24 "black"))
-                           (/ WIDTH-OF-WORLD 2)
-                           (/ HEIGHT-OF-WORLD 2)
-                           "middle"
-                           "center"
-                           (fired-render s))]
-       [else
-        (place-image/align (above (text "Game over" 24 "black")
-                                  (text "You lost" 24 "black"))
-                           (/ WIDTH-OF-WORLD 2)
-                           (/ HEIGHT-OF-WORLD 2)
-                           "middle"
-                           "center"
-                           (fired-render s))])]))
-
-; SIGS -> Image
-; renders aim scene
-(define (aim-render s)
-  (tank-render (aim-tank s)
-               (ufo-render (aim-ufo s) BACKGROUND)))
-
-; SIGS -> Image
-; renders fired scene
-(define (fired-render s)
-  (tank-render (fired-tank s)
-               (ufo-render (fired-ufo s)
-                           (missile-render (fired-missile s)
-                                           BACKGROUND))))
+                        (si-render.v2 s)))
 
 ; Tank Image -> Image
 ; adds t to the given image im
@@ -160,32 +128,22 @@
 (define (ufo-render u im)
   (place-image UFO (posn-x u) (posn-y u) im))
 
-; Missile Image -> Image
-; adds m to the given image im
-(define (missile-render m im)
-  (place-image MISSILE (posn-x m) (posn-y m) im))
-
 ; Number -> Number
 (define (random-vel s)
   (cond
     [(= (random 2) 0) s]
     [else (* -1 s)]))
 
-; SIGS -> SIGS
-(define (si-move w)
-  (si-move-proper w (random-vel JUMP-SIZE)))
+; SIGS.v2 -> SIGS.v2
+(define (si-move.v2 w)
+  (si-move-proper.v2 w (random-vel JUMP-SIZE)))
 
-; SIGS Number -> SIGS
-; moves the space-invader objects predictably by delta
-(define (si-move-proper w delta)
-  (cond
-    [(aim? w)
-     (make-aim (move-ufo (aim-ufo w) delta)
-               (move-tank (aim-tank w)))]
-    [(fired? w)
-     (make-fired (move-ufo (fired-ufo w) delta)
-                 (move-tank (fired-tank w))
-                 (move-missile (fired-missile w)))]))
+; SIGS.v2 Number -> SIGS.v2
+; moves the space invader objects predictably by delta
+(define (si-move-proper.v2 w delta)
+  (make-sigs (move-ufo (sigs-ufo w) delta)
+             (move-tank (sigs-tank w))
+             (move-missile.v2 (sigs-missile w))))
 
 ; Posn Number -> Posn
 ; Moves UFO by delta
@@ -199,70 +157,74 @@
   (make-tank (+ (tank-loc t) (tank-vel t))
              (tank-vel t)))
 
-; Posn -> Posn
+; MissileOrNot -> MissileOrNot
 ; Moves missile
-(define (move-missile m)
-  (make-posn (posn-x m) (- (posn-y m) MISSILE-SPEED)))
+(define (move-missile.v2 m)
+  (cond
+    [(boolean? m) m]
+    [else (make-posn (posn-x m) (- (posn-y m) MISSILE-SPEED))]))
 
-; SIGS String -> SIGS
+; SIGS.v2 String -> SIGS
 ; handle key presses to control the tank
 ; - "left" key ensures that the tank moves left
 ; - "right" key ensures that the tank moves right
 ; - "space" fires the missle if hasn't been launched yet
-(define (si-control ws ke)
+(define (si-control.v2 ws ke)
   (cond
-    [(aim? ws)
-     (cond
-       [(string=? " " ke)
-        (make-fired (aim-ufo ws)
-                    (aim-tank ws)
-                    (make-posn (tank-loc (aim-tank ws))
-                               HEIGHT-OF-WORLD))]
-       [(string=? "left" ke)
-        (make-aim (aim-ufo ws)
-                  (make-tank (tank-loc (aim-tank ws)) (* -1 TANK-SPEED)))]
-       [(string=? "right" ke)
-        (make-aim (aim-ufo ws)
-                  (make-tank (tank-loc (aim-tank ws)) TANK-SPEED))]
-       [else ws])]
-    [(fired? ws) ws]))
+    [(string=? " " ke)
+     (make-sigs (sigs-ufo ws)
+                (sigs-tank ws)
+                (make-posn (tank-loc (sigs-tank ws))
+                           HEIGHT-OF-WORLD))]
+    [(string=? "left" ke)
+     (make-sigs (sigs-ufo ws)
+                (make-tank (tank-loc (sigs-tank ws))
+                           (* -1 TANK-SPEED))
+                (sigs-missile ws))]
+    [(string=? "right" ke)
+     (make-sigs (sigs-ufo ws)
+                (make-tank (tank-loc (sigs-tank ws))
+                           TANK-SPEED)
+                (sigs-missile ws))]
+    [else ws]))
 
-; SIGS -> Boolean
-(define (si-game-over? ws)
+; SIGS.v2 -> Boolean
+(check-expect (si-game-over?.v2 (make-sigs (make-posn 185 102)
+                                           (make-tank 173 1)
+                                           (make-posn 170 385)))
+                                #false)
+(define (si-game-over?.v2 ws)
   (cond
-    [(fired? ws)
-     (cond
-       [(close-enough? (fired-ufo ws) (fired-missile ws)) #true]
-       [(close-enough? (fired-ufo ws) (- HEIGHT-OF-WORLD GROUND-HEIGHT)) #true]
-       [else false])]
-    [(aim? ws)
-     (cond
-       [(close-enough? (aim-ufo ws) (- HEIGHT-OF-WORLD GROUND-HEIGHT)) #true]
-       [else false])]))
+    [(close-enough?.v2 (sigs-ufo ws) (sigs-missile ws)) #true]
+    [(close-enough?.v2 (sigs-ufo ws) GROUND-HEIGHT) #true]
+    [else #false]))
 
-; Posn, Posn or Number -> Boolean
-(define (close-enough? ufo target)
+; MissileOrNot or Number -> Boolean
+(check-expect (close-enough?.v2 (make-posn 185 102)
+                                (make-posn 170 385))
+              #false)
+(check-expect (close-enough?.v2 (make-posn 185 102)
+                                GROUND-HEIGHT)
+              #false)
+(define (close-enough?.v2 ufo target)
   (cond
+    [(number? target)
+     (< (- HEIGHT-OF-WORLD (posn-y ufo)) target)]
+    [(boolean? target) #false]
     [(posn? target)
      (and (> (/ UFO-WIDTH 2) (abs (- (posn-x ufo) (posn-x target))))
-          (> (/ UFO-HEIGHT 2) (abs (- (posn-y ufo) (posn-y target)))))]
-    [else (> PROXIMITY-TRESHOLD (abs (- (posn-y ufo) target)))]))
+          (> (/ UFO-HEIGHT 2) (abs (- (posn-y ufo) (posn-y target)))))]))
 
-; SIGS -> SIGS
-(define (main ws)
+; SIGS.v2 -> SIGS.v2
+(define (main.v2 ws)
   (big-bang ws
-    [on-tick si-move]
-    [on-key si-control]
-    [stop-when si-game-over? si-render-final]
-    [to-draw si-render]))
+    [on-tick si-move.v2]
+    [on-key si-control.v2]
+    [stop-when si-game-over?.v2 si-render-final.v2]
+    [to-draw si-render.v2]))
 
-(define initial-state (make-aim (make-posn (/ WIDTH-OF-WORLD 2) 0)
-                                (make-tank (/ WIDTH-OF-WORLD 2) TANK-SPEED)))
-(main initial-state)
+(define initial-state (make-sigs (make-posn (/ WIDTH-OF-WORLD 2) 0)
+                                 (make-tank (/ WIDTH-OF-WORLD 2) TANK-SPEED)
+                                 #false))
 
-; Wishlist
-; - [x] si-render-final
-; - [x] si-control
-; - [x] move-ufo
-; - [x] move-tank
-; - [x] move-missile
+(main.v2 initial-state)

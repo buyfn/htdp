@@ -240,10 +240,3 @@
 (define initial-state (make-aim (make-posn (/ WIDTH-OF-WORLD 2) 0)
                                 (make-tank (/ WIDTH-OF-WORLD 2) TANK-SPEED)))
 (main initial-state)
-
-; Wishlist
-; - [ ] si-render-final
-; - [x] si-control
-; - [x] move-ufo
-; - [x] move-tank
-; - [x] move-missile
