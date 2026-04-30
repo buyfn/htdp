@@ -73,6 +73,12 @@
 ; - (make-fired UFO Tank Missile)
 ; interpretation represents the complete state of a space invader game
 
+(define (sigs? v)
+  (cond
+    [(aim? v) #true]
+    [(fired? v) #true]
+    [else #false]))
+
 ; SIGS -> Image
 ; renders the given game state on top of BACKGROUND
 (define (si-render s)
@@ -235,6 +241,7 @@
     [on-tick si-move]
     [on-key si-control]
     [stop-when si-game-over? si-render-final]
+    [check-with sigs?]
     [to-draw si-render]))
 
 (define initial-state (make-aim (make-posn (/ WIDTH-OF-WORLD 2) 0)
