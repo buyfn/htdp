@@ -172,10 +172,13 @@
 (define (si-control.v2 ws ke)
   (cond
     [(string=? " " ke)
-     (make-sigs (sigs-ufo ws)
-                (sigs-tank ws)
-                (make-posn (tank-loc (sigs-tank ws))
-                           HEIGHT-OF-WORLD))]
+     (cond
+       [(false? (sigs-missile ws))
+        (make-sigs (sigs-ufo ws)
+                   (sigs-tank ws)
+                   (make-posn (tank-loc (sigs-tank ws))
+                              HEIGHT-OF-WORLD))]
+       [else ws])]
     [(string=? "left" ke)
      (make-sigs (sigs-ufo ws)
                 (make-tank (tank-loc (sigs-tank ws))
