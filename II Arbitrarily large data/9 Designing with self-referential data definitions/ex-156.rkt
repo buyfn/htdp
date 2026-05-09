@@ -53,5 +53,8 @@
 ; ShotWorld KeyEvent -> ShotWorld 
 ; adds a shot to the world 
 ; if the player presses the space bar
+(check-expect (keyh '() " ") (cons HEIGHT '()))
+(check-expect (keyh (cons 20 '()) " ") (cons HEIGHT (cons 20 '())))
+(check-expect (keyh (cons 20 '()) "a") (cons 20 '()))
 (define (keyh w ke)
   (if (key=? ke " ") (cons HEIGHT w) w))
