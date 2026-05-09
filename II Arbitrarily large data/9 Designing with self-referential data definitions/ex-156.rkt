@@ -41,6 +41,9 @@
 
 ; ShotWorld -> ShotWorld
 ; moves each shot on w up by one pixel 
+(check-expect (tock '()) '())
+(check-expect (tock (cons 10 '())) (cons 9 '()))
+(check-expect (tock (cons 15 (cons 3 '()))) (cons 14 (cons 2 '())))
 (define (tock w)
   (cond
     [(empty? w) w]
