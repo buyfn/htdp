@@ -55,5 +55,3 @@
 ; if the player presses the space bar
 (define (keyh w ke)
   (if (key=? ke " ") (cons HEIGHT w) w))
-
-(main '())
