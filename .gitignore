@@ -1,4 +1,5 @@
 .DS_Store
+.antigravitycli
 
 # ignore automatic backup files
 *~
