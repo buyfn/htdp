@@ -112,7 +112,7 @@
     [(empty? (rest p)) (first p)]
     [else (last (rest p))]))
 
-; NELoP -> NELoP
+; Posn NELoP -> NELoP
 ; adds a position p at the end of list lop
 (check-expect (add-at-end (make-posn 0 0) triangle-p)
               (list (make-posn 20 10)
