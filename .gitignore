@@ -3,3 +3,5 @@
 
 # ignore automatic backup files
 *~
+
+Library.xml
