@@ -21,6 +21,14 @@
                              date2
                              8
                              date2))
+(define track3 (create-track "Rush"
+                             "Troye Sivan"
+                             "Something To Give Each Other"
+                             194000
+                             7
+                             date1
+                             5
+                             date1))
 
 (define ITUNES-LOCATION "Library.xml")
 
@@ -86,6 +94,35 @@
                     (track-album track1)))
 (define (select-album-titles/unique ltracks)
   (create-set (select-all-album-titles ltracks)))
+
+; String LTracks -> LTracks
+; Extracts from the list of tracks those, which are from the
+; specified album
+
+; empty list produces empty
+(check-expect (select-album "Hounds of Love" '()) '())
+; single matching track
+(check-expect (select-album "Hounds of Love" (list track2))
+              (list track2))
+; no tracks match
+(check-expect (select-album "Nonexistent" (list track1 track2)) '())
+; mixed: only matching tracks are kept
+(check-expect (select-album "Hounds of Love" (list track1 track2))
+              (list track2))
+; all tracks match
+(check-expect (select-album "Something To Give Each Other"
+                             (list track1 track3))
+              (list track1 track3))
+; multiple matches among several tracks
+(check-expect (select-album "Something To Give Each Other"
+                             (list track1 track2 track3))
+              (list track1 track3))
+(define (select-album album-title ltracks)
+  (cond
+    [(empty? ltracks) '()]
+    [(string=? (track-album (first ltracks)) album-title)
+     (cons (first ltracks) (select-album album-title (rest ltracks)))]
+    [else (select-album album-title (rest ltracks))]))
 
 ;; (total-time itunes-tracks)
 ;; (select-album-titles/unique itunes-tracks)
