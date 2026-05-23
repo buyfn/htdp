@@ -38,5 +38,55 @@
     [else (+ (track-time (first ltracks))
              (total-time (rest ltracks)))]))
 
-(total-time itunes-tracks)
+; LTracks -> List-of-strings
+; Consumes list of tracks and produces a list of album titles
+(check-expect (select-all-album-titles
+               (list track1 track2))
+              (list (track-album track1)
+                    (track-album track2)))
+(define (select-all-album-titles ltracks)
+  (cond
+    [(empty? ltracks) '()]
+    [else (cons (track-album (first ltracks))
+                (select-all-album-titles (rest ltracks)))]))
 
+; List-of-strings -> List-of-strings
+; Constructs a list that contains every string from
+; the input list exactly once
+
+; empty list stays empty
+(check-expect (create-set '()) '())
+; single element is kept
+(check-expect (create-set (list "a")) (list "a"))
+; no duplicates – nothing to remove
+(check-expect (create-set (list "a" "b")) (list "a" "b"))
+; simple duplicate
+(check-expect (create-set (list "a" "b" "a")) (list "b" "a"))
+; all elements the same
+(check-expect (create-set (list "x" "x" "x")) (list "x"))
+; duplicate at the end
+(check-expect (create-set (list "a" "b" "c" "c")) (list "a" "b" "c"))
+; non-adjacent duplicates
+(check-expect (create-set (list "a" "b" "a" "b")) (list "a" "b"))
+; multiple distinct duplicates in a longer list
+(check-expect (create-set (list "a" "b" "c" "b" "a" "d"))
+              (list "c" "b" "a" "d"))
+(define (create-set los)
+  (cond
+    [(empty? los) '()]
+    [(member? (first los) (rest los))
+     (create-set (rest los))]
+    [else (cons (first los) (create-set (rest los)))]))
+
+; LTracks -> List-of-strings
+; Produces a list of unique album titles from the list of tracks
+(check-expect (select-album-titles/unique
+               (list track1 track2 track1))
+              (list (track-album track2)
+                    (track-album track1)))
+(define (select-album-titles/unique ltracks)
+  (create-set (select-all-album-titles ltracks)))
+
+;; (total-time itunes-tracks)
+;; (select-album-titles/unique itunes-tracks)
+;; (length (select-album-titles/unique itunes-tracks))
