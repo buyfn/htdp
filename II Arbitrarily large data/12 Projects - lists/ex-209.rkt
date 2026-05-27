@@ -34,9 +34,89 @@
     [else (in-dictionary/word? word (rest dict))]))
 
 ; Word -> List-of-words
-; finds all rearrangements of word
-(define (arrangements word)
-  (list word))
+; creates all rearrangements of the letters in w
+(define (arrangements w)
+  (cond
+    [(empty? w) (list '())]
+    [else (insert-everywhere/in-all-words (first w)
+                                          (arrangements (rest w)))]))
+
+; 1String List-of-words -> List-of-words
+; creates a list of words with the given character inserted in all possible
+; places for each word in the given list
+; -- empty list of words
+(check-expect (insert-everywhere/in-all-words "d" '()) '())
+
+; -- single-letter word
+(check-expect (insert-everywhere/in-all-words "d" (list (list "a")))
+              (list (list "d" "a")
+                    (list "a" "d")))
+
+; -- two-letter word: "d" inserted into ("e" "r") at all positions
+(check-expect (insert-everywhere/in-all-words "d" (list (list "e" "r")))
+              (list (list "d" "e" "r")
+                    (list "e" "d" "r")
+                    (list "e" "r" "d")))
+
+; -- multiple words in the list
+(check-expect (insert-everywhere/in-all-words "d"
+                (list (list "e" "r") (list "r" "e")))
+              (list (list "d" "e" "r")
+                    (list "e" "d" "r")
+                    (list "e" "r" "d")
+                    (list "d" "r" "e")
+                    (list "r" "d" "e")
+                    (list "r" "e" "d")))
+
+; -- three-letter word: "a" inserted into ("b" "c" "d") at all positions
+(check-expect (insert-everywhere/in-all-words "a"
+                (list (list "b" "c" "d")))
+              (list (list "a" "b" "c" "d")
+                    (list "b" "a" "c" "d")
+                    (list "b" "c" "a" "d")
+                    (list "b" "c" "d" "a")))
+(define (insert-everywhere/in-all-words char low)
+  (cond
+    [(empty? low) '()]
+    [else (append (insert-everywhere/word char (first low))
+                  (insert-everywhere/in-all-words char (rest low)))]))
+
+; 1String Word -> List-of-words
+; creates a list of words by inserting given character
+; in every position of the given word
+(check-expect (insert-everywhere/word "d" '())
+              (list (list "d")))
+(check-expect (insert-everywhere/word "d" (list "a"))
+              (list (list "d" "a")
+                    (list "a" "d")))
+(check-expect (insert-everywhere/word "d" (list "a" "b"))
+              (list (list "d" "a" "b")
+                    (list "a" "d" "b")
+                    (list "a" "b" "d")))
+(define (insert-everywhere/word char word)
+  (cond
+    [(empty? word) (list (list char))]
+    [else
+     (cons (cons char word)
+           (prepend-char/for-each-word (first word)
+                                       (insert-everywhere/word char (rest word))))]))
+
+; 1String List-of-words -> List-of-words
+; creates a list of words by attaching given character
+; at the begging of each word in the list
+(check-expect (prepend-char/for-each-word "d" '())
+              '())
+(check-expect (prepend-char/for-each-word "d" (list (list "a")))
+              (list (list "d" "a")))
+(check-expect (prepend-char/for-each-word "d" (list (list "a")
+                                                    (list "b")))
+              (list (list "d" "a")
+                    (list "d" "b")))
+(define (prepend-char/for-each-word char low)
+  (cond
+    [(empty? low) '()]
+    [else (cons (cons char (first low))
+                (prepend-char/for-each-word char (rest low)))]))
 
 ; List-of-words -> List-of-strings
 ; converts a list of words into list of strings
