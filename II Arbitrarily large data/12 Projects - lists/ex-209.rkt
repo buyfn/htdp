@@ -103,7 +103,7 @@
 
 ; 1String List-of-words -> List-of-words
 ; creates a list of words by attaching given character
-; at the begging of each word in the list
+; at the beginning of each word in the list
 (check-expect (prepend-char/for-each-word "d" '())
               '())
 (check-expect (prepend-char/for-each-word "d" (list (list "a")))
@@ -130,11 +130,11 @@
 (define (words->strings low)
   (cond
     [(empty? low) '()]
-    [else (cons (implode (first low))
+    [else (cons (word->string (first low))
                 (words->strings (rest low)))]))
 
 ; String -> Word
-; converts s to the chohsen word representation
+; converts s to the chosen word representation
 (check-expect (string->word "") '())
 (check-expect (string->word "a") (list "a"))
 (check-expect (string->word "hi") (list "h" "i"))
