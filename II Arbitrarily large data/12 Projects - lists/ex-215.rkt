@@ -30,7 +30,7 @@
     [to-draw render]
     [on-tick tock frame-rate]
     [on-key handle-key]
-    [stop-when hit-wall?]))
+    [stop-when hit-wall? render/game-over]))
 
 ; WorldState -> Image
 ; renders a worm to the canvas
@@ -41,6 +41,13 @@
                      "left"
                      "top"
                      CANVAS))
+
+; WorldState -> Image
+; renders "game over" screen
+(define (render/game-over w)
+  (place-image/align (text "Game over" 14 "black")
+               2 (* SEGMENT-SIZE FIELD-SIZE) "left" "bottom"
+               (render w)))
 
 ; WorldState KeyEvent -> WorldState
 ; handles worm direction control
