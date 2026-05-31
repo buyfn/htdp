@@ -45,7 +45,7 @@
 ; WorldState -> Image
 ; renders "game over" screen
 (define (render/game-over w)
-  (place-image/align (text "Game over" 14 "black")
+  (place-image/align (text "Worm hit border" 12 "black")
                2 (* SEGMENT-SIZE FIELD-SIZE) "left" "bottom"
                (render w)))
 
@@ -99,7 +99,25 @@
 ; Direction Worm -> Worm
 ; changes the direction of the worm
 (define (change-direction d w)
-  (make-worm (worm-pos w) d))
+  (cond
+    [(and (string=? (worm-dir w) "up")
+          (string=? d "down"))
+     w]
+    [(and (string=? (worm-dir w) "right")
+          (string=? d "left"))
+     w]
+    [(and (string=? (worm-dir w) "down")
+          (string=? d "up"))
+     w]
+    [(and (string=? (worm-dir w) "left")
+          (string=? d "right"))
+     w]
+    [else
+     (make-worm (worm-pos w) d)]))
+
+; WordState -> WordState
+; rewind word state to a previos tick
+(define (rewind w) w)
 
 ; WorldState -> Boolean
 ; returns true if worm hit a wall
