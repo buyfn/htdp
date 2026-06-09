@@ -1,6 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname ex-218) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "itunes.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ((lib "image.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "itunes.rkt" "teachpack" "2htdp")) #f)))
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname worm) (read-case-sensitive #t) (teachpacks ((lib "image.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "itunes.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ((lib "image.rkt" "teachpack" "2htdp") (lib "universe.rkt" "teachpack" "2htdp") (lib "batch-io.rkt" "teachpack" "2htdp") (lib "itunes.rkt" "teachpack" "2htdp")) #f)))
 (define SEGMENT-SIZE 10)
 
 (define FIELD-SIZE 20)
@@ -10,7 +10,7 @@
 (define-struct worm [body dir])
 ; A Worm is a structure (make-worm WormBody Direction)
 ; interpretation: (make-worm w dir) represents a worm with
-; body segments `w` and direction `dir`
+; body segments `w` and current direction `dir`
 
 ; A WormBody is a list of Posn
 ; constraint: sequential segments are adjasent,
@@ -22,7 +22,7 @@
 ; - "down"
 ; - "left"
 
-(define-struct world [worm food])
+(define-struct world [worm food dir-queue])
 ; A WorldState is a structure (make-world Worm Posn)
 ; interpretation: (make-world worm food) represents a world with
 ; a worm and a piece of food
@@ -35,7 +35,7 @@
                                (make-posn (- (quotient FIELD-SIZE 2) 2)
                                           (- (quotient FIELD-SIZE 2) 1)))
                          "right"))
-(define world0 (make-world worm1 (make-posn 10 10)))
+(define world0 (make-world worm1 (make-posn 10 10) '()))
 
 ; Number Boolean -> WorldState
 (define (main frame-rate show-state?)
@@ -84,7 +84,7 @@
 ; WorldState -> Image
 ; renders "game over" screen
 (define (render/game-over w)
-  (place-image/align (text (if (run-on-itself? (world-worm w))
+  (place-image/align (text (if (run-on-itself? w)
                                "Worm ran on itself"
                                "Worm hit border")
                            12 "black")
@@ -100,11 +100,16 @@
 ; handles worm direction control
 (define (handle-key w ke)
   (cond
-    [(key=? ke "up") (make-world (change-direction "up" (world-worm w)) (world-food w))]
-    [(key=? ke "right") (make-world (change-direction "right" (world-worm w)) (world-food w))]
-    [(key=? ke "down") (make-world (change-direction "down" (world-worm w)) (world-food w))]
-    [(key=? ke "left") (make-world (change-direction "left" (world-worm w)) (world-food w))]
+    [(member? ke (list "up" "right" "down" "left"))
+     (enqueue ke w)]
     [else w]))
+
+; Direction World
+; adds given dirction to the queue of directions
+(define (enqueue dir world)
+  (make-world (world-worm world)
+              (world-food world)
+              (append (world-dir-queue world) (list dir))))
 
 ; Direction Worm -> Worm
 ; changes the direction of the worm
@@ -153,10 +158,22 @@
 ; updates the state of the world after tick
 (define (tock w)
   (cond
-    [(reached-food? w) (make-world (worm-grow (world-worm w))
-                                   (food-create (world-food w)))]
-    [else (make-world (worm-move (world-worm w))
-                      (world-food w))]))
+    [(reached-food? w) (make-world (worm-grow (world-worm (dequeue-direction w)))
+                                   (food-create (world-food w))
+                                   (world-dir-queue (dequeue-direction w)))]
+    [else (make-world (worm-move (world-worm (dequeue-direction w)))
+                      (world-food w)
+                      (world-dir-queue (dequeue-direction w)))]))
+
+; WorldState -> WorldState
+; updates direction of the worm by dequeueing the first direction
+(define (dequeue-direction w)
+  (cond
+    [(empty? (world-dir-queue w)) w]
+    [else (make-world (change-direction (first (world-dir-queue w))
+                                        (world-worm w))
+                      (world-food w)
+                      (rest (world-dir-queue w)))]))
 
 ; Worm -> Worm
 ; moves worm one segment ahead
@@ -198,13 +215,13 @@
 ; determines if the worm will run into a wall or itself if moved
 (define (will-collide? w)
   (or (out-of-bounds? (first (worm-body (world-worm w))))
-      (run-on-itself? (world-worm w))))
+      (run-on-itself? w)))
 
-; Worm -> Boolean
+; WorldState -> Boolean
 ; determines whether the worm will run onto iteslf if moved
 (define (run-on-itself? w)
-  (member? (get-next-head w)
-           (worm-body w)))
+  (member? (get-next-head (world-worm (dequeue-direction w)))
+           (worm-body (world-worm w))))
 
 ; Posn -> Boolean
 ; determines whether given Posn is outside of play field
@@ -225,4 +242,4 @@
     [(empty? (rest l)) '()]
     [else (cons (first l) (remove-last (rest l)))]))
 
-(main 0.1 #false)
+(main 0.2 #false)
