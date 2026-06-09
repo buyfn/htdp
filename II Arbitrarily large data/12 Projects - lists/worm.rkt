@@ -47,7 +47,8 @@
        [to-draw render]
        [on-tick tock frame-rate]
        [on-key handle-key]
-       [stop-when will-collide? render/game-over])))))
+       [stop-when will-collide? render/game-over]
+       [close-on-stop #false])))))
 
 ;;; RENDER FUNCTIONS :;;
 
