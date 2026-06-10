@@ -201,22 +201,28 @@
   (cond
     [(string=? (worm-dir w) "up")
      (make-posn (posn-x (first (worm-body w)))
-                (- (posn-y (first (worm-body w))) 1))]
+                (if (= (posn-y (first (worm-body w))) 0)
+                    FIELD-SIZE
+                    (- (posn-y (first (worm-body w))) 1)))]
     [(string=? (worm-dir w) "right")
-     (make-posn (+ (posn-x (first (worm-body w))) 1)
+     (make-posn (if (= (posn-x (first (worm-body w))) (- FIELD-SIZE 1))
+                    0
+                    (+ (posn-x (first (worm-body w))) 1))
                 (posn-y (first (worm-body w))))]
     [(string=? (worm-dir w) "down")
      (make-posn (posn-x (first (worm-body w)))
-                (+ (posn-y (first (worm-body w))) 1))]
+                (if (= (posn-y (first (worm-body w))) FIELD-SIZE)
+                    0
+                    (+ (posn-y (first (worm-body w))) 1)))]
     [(string=? (worm-dir w) "left")
-     (make-posn (- (posn-x (first (worm-body w))) 1)
+     (make-posn (if (= (posn-x (first (worm-body w))) 0)
+                    FIELD-SIZE
+                    (- (posn-x (first (worm-body w))) 1))
                 (posn-y (first (worm-body w))))]))
 
 ; WorldState -> Boolean
 ; determines if the worm will run into a wall or itself if moved
-(define (will-collide? w)
-  (or (out-of-bounds? (first (worm-body (world-worm w))))
-      (run-on-itself? w)))
+(define (will-collide? w) (run-on-itself? w))
 
 ; WorldState -> Boolean
 ; determines whether the worm will run onto iteslf if moved
@@ -243,4 +249,4 @@
     [(empty? (rest l)) '()]
     [else (cons (first l) (remove-last (rest l)))]))
 
-(main 0.2 #false)
+(main 0.1 #false)
