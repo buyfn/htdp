@@ -13,7 +13,7 @@
 ; body segments `w` and current direction `dir`
 
 ; A WormBody is a list of Posn
-; constraint: sequential segments are adjasent,
+; constraint: sequential segments are adjacent,
 ; meaning they differ by 1 in single direction
 
 ; A Direction is one of:
@@ -23,9 +23,10 @@
 ; - "left"
 
 (define-struct world [worm food dir-queue])
-; A WorldState is a structure (make-world Worm Posn)
-; interpretation: (make-world worm food) represents a world with
-; a worm and a piece of food
+; A WorldState is a structure (make-world Worm Posn DirQueue)
+; interpretation: (make-world worm food dir-queue) represents a world
+; with a worm, a piece of food, and a queue of pending directions
+; where DirQueue is a list of Direction
 
 (define worm0 (make-worm (list (make-posn 1 0)
                                (make-posn 0 0))
@@ -55,8 +56,7 @@
 ; WorldState -> Image
 ; renders a worm to the canvas
 (define (render w)
-  (render/food (world-food w)
-               (render/worm (worm-body (world-worm w)) CANVAS)))
+  (render/food w (render/worm (worm-body (world-worm w)) CANVAS)))
 
 ; WormBody Image -> Image
 ; renders worm to image
@@ -67,10 +67,13 @@
                           "red"
                           (render/worm (rest w) i))]))
 
-; Posn Image -> Image
+; WorldState Image -> Image
 ; renders food to image
-(define (render/food food i)
-  (render/segment food "green" i))
+(define (render/food w i)
+  (if (equal? (world-food w)
+              (first (worm-body (world-worm w))))
+      i
+      (render/segment (world-food w) "green" i)))
 
 ; Posn String Image -> Image
 ; renders a worm segment to image
@@ -106,7 +109,7 @@
     [else w]))
 
 ; Direction World
-; adds given dirction to the queue of directions
+; adds given direction to the queue of directions
 (define (enqueue dir world)
   (make-world (world-worm world)
               (world-food world)
@@ -202,7 +205,7 @@
     [(string=? (worm-dir w) "up")
      (make-posn (posn-x (first (worm-body w)))
                 (if (= (posn-y (first (worm-body w))) 0)
-                    FIELD-SIZE
+                    (- FIELD-SIZE 1)
                     (- (posn-y (first (worm-body w))) 1)))]
     [(string=? (worm-dir w) "right")
      (make-posn (if (= (posn-x (first (worm-body w))) (- FIELD-SIZE 1))
@@ -211,7 +214,7 @@
                 (posn-y (first (worm-body w))))]
     [(string=? (worm-dir w) "down")
      (make-posn (posn-x (first (worm-body w)))
-                (if (= (posn-y (first (worm-body w))) FIELD-SIZE)
+                (if (= (posn-y (first (worm-body w))) (- FIELD-SIZE 1))
                     0
                     (+ (posn-y (first (worm-body w))) 1)))]
     [(string=? (worm-dir w) "left")
@@ -225,18 +228,10 @@
 (define (will-collide? w) (run-on-itself? w))
 
 ; WorldState -> Boolean
-; determines whether the worm will run onto iteslf if moved
+; determines whether the worm will run onto itself if moved
 (define (run-on-itself? w)
   (member? (get-next-head (world-worm (dequeue-direction w)))
            (worm-body (world-worm w))))
-
-; Posn -> Boolean
-; determines whether given Posn is outside of play field
-(define (out-of-bounds? p)
-  (or (< (posn-x p) 0)
-      (> (posn-x p) (- FIELD-SIZE 1))
-      (< (posn-y p) 0)
-      (> (posn-y p) (- FIELD-SIZE 1))))
 
 ; List -> List
 ; removes last element of a list
