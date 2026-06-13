@@ -216,7 +216,7 @@
                     (+ (posn-y (first (worm-body w))) 1)))]
     [(string=? (worm-dir w) "left")
      (make-posn (if (= (posn-x (first (worm-body w))) 0)
-                    FIELD-SIZE
+                    (- FIELD-SIZE 1)
                     (- (posn-x (first (worm-body w))) 1))
                 (posn-y (first (worm-body w))))]))
 
