@@ -136,7 +136,7 @@
 ;;; FOOD PLACEMENT ;;;
 
 ; Posn -> Posn
-;
+; creates a food Posn that isn't the same as given p
 (check-satisfied (food-create (make-posn 1 1)) not=-1-1?)
 (define (food-create p)
   (food-check-create
@@ -144,7 +144,7 @@
 
 ; Posn Posn -> Posn
 ; generative recursion
-;
+; returns a food Posn candidate if it's not equal to p
 (define (food-check-create p candidate)
   (if (equal? p candidate)
       (food-create p)
