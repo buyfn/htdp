@@ -66,9 +66,9 @@
 ; A Missle is a Posn
 ; interpretation (make-posn x y) is the missile's place
 
-(define-struct sigs [ufo tank missiles])
+(define-struct sigs [ufo tank missiles charges#])
 ; A SIGS is a structure:
-; (make-sigs UFO Tanks List-of-missiles)
+; (make-sigs UFO Tanks List-of-missiles Number)
 ; interpretation represents the complete state of a
 ; space invader game
 
@@ -134,7 +134,8 @@
 (define (si-move-proper w delta)
   (make-sigs (move-ufo (sigs-ufo w) delta)
              (move-tank (sigs-tank w))
-             (move-missiles (sigs-missiles w))))
+             (move-missiles (sigs-missiles w))
+             (sigs-charges# w)))
 
 ; Posn Number -> Posn
 ; Moves UFO by delta
@@ -169,27 +170,33 @@
 (define (si-control ws ke)
   (cond
     [(string=? " " ke)
-     (make-sigs (sigs-ufo ws)
-                (sigs-tank ws)
-                (cons (make-posn (tank-loc (sigs-tank ws))
-                                 HEIGHT-OF-WORLD)
-                      (sigs-missiles ws)))]
+     (if (> (sigs-charges# ws) 0)
+         (make-sigs (sigs-ufo ws)
+                    (sigs-tank ws)
+                    (cons (make-posn (tank-loc (sigs-tank ws))
+                                     HEIGHT-OF-WORLD)
+                          (sigs-missiles ws))
+                    (- (sigs-charges# ws) 1))
+         ws)]
     [(string=? "left" ke)
      (make-sigs (sigs-ufo ws)
                 (make-tank (tank-loc (sigs-tank ws))
                            (* -1 TANK-SPEED))
-                (sigs-missiles ws))]
+                (sigs-missiles ws)
+                (sigs-charges# ws))]
     [(string=? "right" ke)
      (make-sigs (sigs-ufo ws)
                 (make-tank (tank-loc (sigs-tank ws))
                            TANK-SPEED)
-                (sigs-missiles ws))]
+                (sigs-missiles ws)
+                (sigs-charges# ws))]
     [else ws]))
 
 ; SIGS -> Boolean
 (check-expect (si-game-over? (make-sigs (make-posn 185 102)
                                         (make-tank 173 1)
-                                        (list (make-posn 170 385))))
+                                        (list (make-posn 170 385))
+                                        3))
               #false)
 (define (si-game-over? ws)
   (cond
@@ -232,6 +239,7 @@
 
 (define initial-state (make-sigs (make-posn (/ WIDTH-OF-WORLD 2) 0)
                                  (make-tank (/ WIDTH-OF-WORLD 2) TANK-SPEED)
-                                 '()))
+                                 '()
+                                 3))
 
 (main initial-state)
