@@ -47,11 +47,14 @@
                                      "solid"
                                      "steel blue")))
 
+(define CHARGES# 15)
+(define UFOS# 10)
 (define PROXIMITY-TRESHOLD 5)
 (define JUMP-SIZE 5)
 (define DESCEND-SPEED 2)
 (define TANK-SPEED 1)
 (define MISSILE-SPEED 5)
+(define UFO-GENERATE-RATE 50)
 
 ; A UFO is a Posn
 ; interpretation (make-posn x y) is the UFO's location
@@ -66,32 +69,29 @@
 ; A Missle is a Posn
 ; interpretation (make-posn x y) is the missile's place
 
-(define-struct sigs [ufo tank missiles charges#])
+(define-struct sigs [ufos tank missiles ufos# charges# counter])
 ; A SIGS is a structure:
-; (make-sigs UFO Tanks List-of-missiles Number)
+; (make-sigs List-of-UFO Tanks List-of-missiles Number Number Number)
 ; interpretation represents the complete state of a
 ; space invader game
 
-; Missile Image -> Image
-; adds an image of missile m to scene s
-(check-expect (missile-render (make-posn 30 40) BACKGROUND)
-              (place-image MISSILE 30 40 BACKGROUND))
-(define (missile-render m s)
-  (place-image MISSILE (posn-x m) (posn-y m) s))
 
+;;; RENDER ;;;
 ; SIGS -> Image
 ; renders game state on top of BACKGROUND
 (define (si-render s)
-  (tank-render (sigs-tank s)
-               (ufo-render (sigs-ufo s)
-                           (missiles-render (sigs-missiles s) BACKGROUND))))
+  (render-charges# (sigs-charges# s)
+                   (tank-render (sigs-tank s)
+                                (ufos-render (sigs-ufos s)
+                                             (missiles-render (sigs-missiles s)
+                                                              BACKGROUND)))))
 
 ; SIGS -> Image
 ; renders the final screen
 (define (si-render-final s)
   (place-image/align (above (text "Game over" 24 "black")
                             (cond
-                              [(close-enough? (sigs-ufo s) GROUND-HEIGHT)
+                              [(ufo-landed? (sigs-ufos s))
                                (text "You lost" 24 "black")]
                               [else
                                (text "You win" 24 "black")]))
@@ -106,6 +106,14 @@
 (define (tank-render t im)
   (place-image TANK (tank-loc t) (- HEIGHT-OF-WORLD TANK-HEIGHT) im))
 
+; List-of-UFO
+; adds UFOs to the given image im
+(define (ufos-render ufos im)
+  (cond
+    [(empty? ufos) im]
+    [else (ufo-render (first ufos)
+                      (ufos-render (rest ufos) im))]))
+
 ; UFO Image -> Image
 ; adds u to the given image im
 (define (ufo-render u im)
@@ -119,6 +127,23 @@
     [else (missile-render (first missiles)
                           (missiles-render (rest missiles) im))]))
 
+; Missile Image -> Image
+; adds an image of missile m to scene s
+(check-expect (missile-render (make-posn 30 40) BACKGROUND)
+              (place-image MISSILE 30 40 BACKGROUND))
+(define (missile-render m s)
+  (place-image MISSILE (posn-x m) (posn-y m) s))
+
+; Number -> Image
+; adds charges counter to the image
+(define (render-charges# n i)
+  (place-image/align (beside (text "Charges: " 12 "black")
+                             (text (number->string n) 12 "black"))
+                     0 HEIGHT-OF-WORLD "left" "bottom" i))
+
+;;; END OF RENDER ;;;
+
+
 ; Number -> Number
 (define (random-vel s)
   (cond
@@ -127,15 +152,75 @@
 
 ; SIGS -> SIGS
 (define (si-move w)
-  (si-move-proper w (random-vel JUMP-SIZE)))
+  (add-ufo
+   (remove-collisions
+    (make-sigs (move-ufos (sigs-ufos w))
+               (move-tank (sigs-tank w))
+               (move-missiles (sigs-missiles w))
+               (sigs-ufos# w)
+               (sigs-charges# w)
+               (+ (sigs-counter w) 1)))))
 
-; SIGS Number -> SIGS
-; moves the space invader objects predictably by delta
-(define (si-move-proper w delta)
-  (make-sigs (move-ufo (sigs-ufo w) delta)
-             (move-tank (sigs-tank w))
-             (move-missiles (sigs-missiles w))
-             (sigs-charges# w)))
+; SIGS -> SIGS
+; Adds a UFO
+(define (add-ufo ws)
+  (cond
+    [(= 0 (sigs-ufos# ws)) ws]
+    [(not (= 0 (modulo (sigs-counter ws) UFO-GENERATE-RATE))) ws]
+    [else (make-sigs (cons (make-posn (/ WIDTH-OF-WORLD 2) 0)
+                           (sigs-ufos ws))
+                     (sigs-tank ws)
+                     (sigs-missiles ws)
+                     (- (sigs-ufos# ws) 1)
+                     (sigs-charges# ws)
+                     (sigs-counter ws))]))
+
+; SIGS -> SIGS
+; Removes UFOs and missiles that has collided
+(define (remove-collisions ws)
+  (make-sigs (remove-hit-ufos (sigs-ufos ws) (sigs-missiles ws))
+             (sigs-tank ws)
+             (remove-collided-missiles (sigs-missiles ws) (sigs-ufos ws))
+             (sigs-ufos# ws)
+             (sigs-charges# ws)
+             (sigs-counter ws)))
+
+; List-of-UFO List-of-missiles -> List-of-UFO
+; Removes UFOs from the list that are hit by a missile from the list
+(define (remove-hit-ufos ufos missiles)
+  (cond
+    [(empty? ufos) ufos]
+    [(ufo-hit? (first ufos) missiles)
+     (remove-hit-ufos (rest ufos) missiles)]
+    [else (cons (first ufos)
+                (remove-hit-ufos (rest ufos) missiles))]))
+
+; UFO List-of-missiles -> Boolean
+; Determines whether the UFO is hit by a missile from the list
+(define (ufo-hit? ufo missiles)
+  (cond
+    [(empty? missiles) #false]
+    [else (or (close-enough? ufo (first missiles))
+              (ufo-hit? ufo (rest missiles)))]))
+
+; List-of-missiles List-of-UFO -> List-of-missiles
+; Removes missiles from the list that hit a UFO from the list
+(define (remove-collided-missiles missiles ufos)
+  (cond
+    [(empty? missiles) missiles]
+    [(missile-hit? (first missiles) ufos)
+     (remove-collided-missiles (rest missiles) ufos)]
+    [else (cons (first missiles)
+                (remove-collided-missiles (rest missiles) ufos))]))
+
+; List-of-UFO -> List-of-UFO
+; Moves all UFOs by random delta
+(define (move-ufos ufos)
+  (cond
+    [(empty? ufos) ufos]
+    [else (cons (move-ufo (first ufos)
+                          (random-vel JUMP-SIZE))
+                (move-ufos (rest ufos)))]))
 
 ; Posn Number -> Posn
 ; Moves UFO by delta
@@ -171,38 +256,60 @@
   (cond
     [(string=? " " ke)
      (if (> (sigs-charges# ws) 0)
-         (make-sigs (sigs-ufo ws)
+         (make-sigs (sigs-ufos ws)
                     (sigs-tank ws)
                     (cons (make-posn (tank-loc (sigs-tank ws))
                                      HEIGHT-OF-WORLD)
                           (sigs-missiles ws))
-                    (- (sigs-charges# ws) 1))
+                    (sigs-ufos# ws)
+                    (- (sigs-charges# ws) 1)
+                    (sigs-counter ws))
          ws)]
     [(string=? "left" ke)
-     (make-sigs (sigs-ufo ws)
+     (make-sigs (sigs-ufos ws)
                 (make-tank (tank-loc (sigs-tank ws))
                            (* -1 TANK-SPEED))
                 (sigs-missiles ws)
-                (sigs-charges# ws))]
+                (sigs-ufos# ws)
+                (sigs-charges# ws)
+                (sigs-counter ws))]
     [(string=? "right" ke)
-     (make-sigs (sigs-ufo ws)
+     (make-sigs (sigs-ufos ws)
                 (make-tank (tank-loc (sigs-tank ws))
                            TANK-SPEED)
                 (sigs-missiles ws)
-                (sigs-charges# ws))]
+                (sigs-ufos# ws)
+                (sigs-charges# ws)
+                (sigs-counter ws))]
     [else ws]))
 
 ; SIGS -> Boolean
-(check-expect (si-game-over? (make-sigs (make-posn 185 102)
+(check-expect (si-game-over? (make-sigs (list (make-posn 185 102))
                                         (make-tank 173 1)
                                         (list (make-posn 170 385))
-                                        3))
+                                        2
+                                        3
+                                        0))
               #false)
 (define (si-game-over? ws)
   (cond
-    [(missile-hit? (sigs-ufo ws) (sigs-missiles ws)) #true]
-    [(close-enough? (sigs-ufo ws) GROUND-HEIGHT) #true]
+    [(all-ufos-hit? ws) #true]
+    [(ufo-landed? (sigs-ufos ws)) #true]
     [else #false]))
+
+; SIGS -> Boolean
+; Determines whether all of the UFOs has been destroyed
+(define (all-ufos-hit? ws)
+  (and (= 0 (length (sigs-ufos ws)))
+       (= 0 (sigs-ufos# ws))))
+
+; SIGS -> Boolean
+; Determines whether one of the UFOs has landed
+(define (ufo-landed? ufos)
+  (cond
+    [(empty? ufos) #false]
+    [else (or (close-enough? (first ufos) GROUND-HEIGHT)
+              (ufo-landed? (rest ufos)))]))
 
 ; Determines whether any missile has hit the ufo
 ; UFO List-of-missiles -> Boolean
@@ -212,12 +319,12 @@
     [else (or (close-enough? (first missiles) ufo)
               (missile-hit? ufo (rest missiles)))]))
 
-; MissileOrNot or Number -> Boolean
+; Missile-or-Number Posn -> Boolean
 (check-expect (close-enough? (make-posn 185 102)
-                                (make-posn 170 385))
+                             (make-posn 170 385))
               #false)
 (check-expect (close-enough? (make-posn 185 102)
-                                GROUND-HEIGHT)
+                             GROUND-HEIGHT)
               #false)
 (define (close-enough? ufo target)
   (cond
@@ -235,11 +342,14 @@
     [on-key si-control]
     [stop-when si-game-over? si-render-final]
     [to-draw si-render]
-    [close-on-stop #false]))
+    [close-on-stop #false]
+    [state #false]))
 
-(define initial-state (make-sigs (make-posn (/ WIDTH-OF-WORLD 2) 0)
+(define initial-state (make-sigs '()
                                  (make-tank (/ WIDTH-OF-WORLD 2) TANK-SPEED)
                                  '()
-                                 3))
+                                 UFOS#
+                                 CHARGES#
+                                 0))
 
 (main initial-state)
