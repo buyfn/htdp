@@ -16,6 +16,8 @@
 ; finite state machine can take from one state to another
 ; in reaction to keystrokes
 
+; A SimulateionState.v1 is an FSM-State
+
 ; FSM-State FSM-State -> Boolean
 ; determines whether two states are equal
 (check-expect (state=? "blue" "green") #false)
@@ -26,3 +28,29 @@
           (image-color? s2))
      (equal? s1 s2)]
     [else (error "state=?: at least one of the arguments is not a Color")]))
+
+(define fsm-traffic
+  (list (make-transition "red" "green")
+        (make-transition "green" "yellow")
+        (make-transition "yellow" "red")))
+
+(define bw-machine
+  (list (make-transition "black" "white")
+        (make-transition "white" "black")))
+
+; FSM -> SimulationState.v1
+; match the keys pressed with the given FSM
+(define (simulate.v1 fsm0)
+  (big-bang initial-state
+            [to-draw render-state.v1]
+            [on-key find-next-state.v1]))
+
+; SimulationState.v1 -> Image
+; renders a wolrd state as an image
+(define (render-state.v1 s)
+  empty-image)
+
+; SimulationState.v1 KeyEvent -> SimulationState.v1
+; finds the next state from ke and cs
+(define (find-next-state.v1 cs ke)
+  cs)
