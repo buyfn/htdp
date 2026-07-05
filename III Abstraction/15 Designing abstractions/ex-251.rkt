@@ -1,6 +1,6 @@
 #lang htdp/isl
 
-; [X Y -> Y] T [List-of X] -> Y
+; [X Y -> Y] Y [List-of X] -> Y
 ; aggregates all the values from l into
 ; a single value using f pairwise
 (define (fold1 f initial-value l)
