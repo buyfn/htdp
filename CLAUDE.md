@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Role
 
-This is a learning repo. Only review exercises the user has already solved — never write exercise solutions yourself, even partially. Give hints and explain concepts instead.
+This is a learning repo. Only review exercises the user has already solved — don't write exercise solutions yourself, unless asked specifically. Give hints and explain concepts instead.
 
 ## Git Workflow
 
