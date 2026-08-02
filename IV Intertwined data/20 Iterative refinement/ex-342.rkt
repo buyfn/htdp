@@ -16,27 +16,6 @@
 (define d-leaf2 (make-dir "leaf2" '() (list f1)))
 (define d-twins (make-dir "twins" (list d-leaf d-leaf2) '()))
 
-; Dir String -> [Maybe Path]
-; produces path to a file with name,
-; or #false if it doesn't exist
-(check-expect (find d-empty "a.txt") #false)
-(check-expect (find d-leaf "a.txt") (list "leaf" "a.txt"))
-(check-expect (find d-nested "a.txt") (list "root" "leaf" "a.txt"))
-(check-expect (find d-siblings "a.txt") (list "top" "leaf" "a.txt"))
-(define (find a-dir name)
-  (local ((define found-in-files?
-            (ormap (lambda (f) (string=? (file-name f) name))
-                   (dir-files a-dir))))
-    (cond
-      [found-in-files? (list (dir-name a-dir) name)]
-      [else (local ((define path-in-child-dirs
-                      (for/or ([d (dir-dirs a-dir)])
-                        (find d name))))
-              (if (false? path-in-child-dirs)
-                  #false
-                  (cons (dir-name a-dir)
-                        path-in-child-dirs)))])))
-
 ; Dir String -> [List-of Path]
 ; produces a list of paths to all files in the whole
 ; directory tree with given name

@@ -34,3 +34,28 @@
                            acc))
                  '()
                  (dir-dirs dir))))
+
+; Dir String -> [List-of Path]
+; produces a list of paths to all files in the whole
+; directory tree with given name
+(check-expect (find-all d-empty "a.txt") '())
+(check-expect (find-all d-leaf "a.txt") (list (list "leaf" "a.txt")))
+(check-expect (find-all d-siblings "a.txt") (list (list "top" "leaf" "a.txt")))
+(check-expect (find-all d-dup "a.txt")
+              (list (list "dup" "a.txt")
+                    (list "dup" "leaf" "a.txt")))
+(check-expect (find-all d-twins "a.txt")
+              (list (list "twins" "leaf" "a.txt")
+                    (list "twins" "leaf2" "a.txt")))
+(check-expect (find-all d-twins "nothing") '())
+(define (find-all a-dir name)
+  (filter (lambda (path) (string=? (last path) name))
+          (ls-R a-dir)))
+
+; [X] [List-of X] -> [Maybe X]
+; returns last element of a list,
+; or #false if the list is empty
+(define (last l)
+  (if (empty? l)
+      #false
+      (first (reverse l))))
