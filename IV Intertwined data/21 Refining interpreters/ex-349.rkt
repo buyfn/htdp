@@ -60,7 +60,7 @@
       (string? v)
       (symbol? v)))
 
-; S-expr -> BSL-expr
+; S-expr -> BSL-value
 ; evaluates S-expr if parse recognises it a a valid BSL-expr
 (check-expect (interpreter-expr '(+ 1 2)) 3)
 (check-expect (interpreter-expr '(* 2 3)) 6)
