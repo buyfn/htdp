@@ -15,7 +15,7 @@
 ; - (make-mul BSL-fun-expr BSL-fun-expr)
 
 (make-f-application 'k (make-add 1 1))
-(make-mul 5 (make-f-application 'k (make-add 1 1 )))
+(make-mul 5 (make-f-application 'k (make-add 1 1)))
 (make-mul (make-f-application 'i 5)
           (make-f-application 'k (make-add 1 1)))
 
