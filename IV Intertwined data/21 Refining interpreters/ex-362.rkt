@@ -10,9 +10,14 @@
 (define-struct fun-def [name arg body])
 (define-struct fun-application [name arg])
 (define-struct add [left right])
+(define-struct sub [left right])
 (define-struct mul [left right])
+(define-struct equals [left right])
+(define-struct if-statement [condition if-expr else-expr])
 
-; A BSL-value is a Number
+; A BSL-value is one of:
+; - Number
+; - Boolean
 
 ; A BSL-fun-def is a structure
 ; (make-fun-def Symbol Symbol BSL-fun-expr)
@@ -41,9 +46,11 @@
 ; A BSL-fun-expr is one of:
 ; - Number
 ; - Symbol
+; - Boolean
 ; - (make-fun-application Symbol BSL-fun-expr)
 ; - (make-add BSL-fun-expr BSL-fun-expr)
 ; - (make-mul BSL-fun-expr BSL-fun-expr)
+; - (make-if-statement BSL-fun-expr BSL-fun-expr)
 
 ; S-expr [List-of S-expr] -> BSL-value
 ; parses S-expr and list of definitions,
@@ -53,12 +60,23 @@
                            '((define (square-area n)
                                (* n n))))
               9)
-;; (check-expect (interpreter '(fact 3)
-;;                            '((define (fact n)
-;;                                (if (= n 0)
-;;                                    1
-;;                                    (* n (fact (- n 1)))))))
-;;               6)
+(check-expect (interpreter '(= 1 2) '()) #false)
+(check-expect (interpreter '(= (+ 1 1) 2) '()) #true)
+(check-expect (interpreter '(if #true 1 2) '()) 1)
+(check-expect (interpreter '(if #false 1 2) '()) 2)
+(check-expect (interpreter '(idty 1)
+                           '((define (idty x) x)))
+              1)
+(check-expect (interpreter '(f 0)
+                           '((define (f n) #true)))
+              #true)
+(check-expect (interpreter '(- 10 3) '()) 7)
+(check-expect (interpreter '(fact 3)
+                           '((define (fact n)
+                               (if (= n 0)
+                                   1
+                                   (* n (fact (- n 1)))))))
+              6)
 (define (interpreter sexp sl)
   (local ((define da (parse-defs sl))
           (define ex (parse-sexp sexp)))
@@ -128,15 +146,24 @@
                     (make-add (parse-sexp (second s)) (parse-sexp (third s)))]
                    [(symbol=? (first s) '*)
                     (make-mul (parse-sexp (second s)) (parse-sexp (third s)))]
+                   [(symbol=? (first s) '=)
+                    (make-equals (parse-sexp (second s)) (parse-sexp (third s)))]
+                   [(symbol=? (first s) '-)
+                    (make-sub (parse-sexp (second s)) (parse-sexp (third s)))]
                    [else (error PARSE_ERROR)])]
                 [(and (= L 2) (symbol? (first s)))
                  (make-fun-application (first s) (parse-sexp (second s)))]
+                [(and (= L 4) (symbol=? (first s) 'if))
+                 (make-if-statement (parse-sexp (second s))
+                                    (parse-sexp (third s))
+                                    (parse-sexp (fourth s)))]
                 [else (error PARSE_ERROR)])))
           ; Atom -> BSL-fun-exp
           (define (parse-atom s)
             (cond
               [(number? s) s]
               [(symbol? s) s]
+              [(boolean? s) s]
               [else (error INVALID_VALUE_ERROR)])))
     (cond
       [(atom? sexp) (parse-atom sexp)]
@@ -155,11 +182,20 @@
 (define (eval-all ex da)
   (match ex
     [(? number?) ex]
+    [(? boolean?) ex]
     [(? symbol?) (second (lookup-con-def da ex))]
     [(add left right) (+ (eval-all left da)
                          (eval-all right da))]
     [(mul left right) (* (eval-all left da)
                          (eval-all right da))]
+    [(sub left right) (- (eval-all left da)
+                         (eval-all right da))]
+    [(equals left right) (= (eval-all left da)
+                            (eval-all right da))]
+    [(if-statement condition if-expr else-expr)
+     (if (eval-all condition da)
+         (eval-all if-expr da)
+         (eval-all else-expr da))]
     [(fun-application name arg)
      (local ((define arg-value (eval-all arg da))
              (define fun (lookup-fun-def da name))
@@ -211,11 +247,20 @@
 (define (subst ex x v)
   (match ex
     [(? number?) ex]
+    [(? boolean?) ex]
     [(? symbol?) (if (symbol=? ex x) v ex)]
     [(add left right) (make-add (subst left x v)
                                 (subst right x v))]
     [(mul left right) (make-mul (subst left x v)
                                 (subst right x v))]
+    [(sub left right) (make-sub (subst left x v)
+                                (subst right x v))]
+    [(equals left right) (make-equals (subst left x v)
+                                      (subst right x v))]
+    [(if-statement condition if-expr else-expr)
+     (make-if-statement (subst condition x v)
+                        (subst if-expr x v)
+                        (subst else-expr x v))]
     [(fun-application name arg)
      (make-fun-application name (subst arg x v))]))
 
@@ -229,4 +274,5 @@
 (define (atom? v)
   (or (number? v)
       (string? v)
+      (boolean? v)
       (symbol? v)))
