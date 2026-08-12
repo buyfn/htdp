@@ -1,3 +1,7 @@
+## Role
+
+This is a learning repo. Only review exercises the user has already solved — don't write exercise solutions yourself, unless asked specifically. Give hints and explain concepts instead.
+
 ## Repo Shape
 
 - This repo is a small HtDP exercise collection, not a packaged app: there is no README, CI, build, lint, or workspace config to consult.
@@ -19,3 +23,7 @@
 - Source files use DrRacket's HtDP teaching languages via a `#reader(lib "htdp-<level>-reader.ss" "lang")...` header, not `#lang racket` — the level (beginner, beginner-abbr, intermediate, …) advances with the book. Preserve that reader line and its embedded teachpack/settings metadata.
 - `prologue.rkt` is a DrRacket `wxme` editor file, not normal text. Treat it as DrRacket-managed unless the task explicitly requires touching that format.
 - Ignore `*.rkt~` files during searches and edits unless the user explicitly asks about backups.
+
+## Git Workflow
+
+Each exercise is solved on an `ex-NNN` branch, committed as `solve ex. NNN`, and merged to `master` via a GitHub PR. The user handles all git operations themselves — don't commit, push, or offer to.
