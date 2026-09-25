@@ -9,6 +9,9 @@
 ;            (<= (f right) 0 (f left)))
 ; generative divides interval in half, the root is in one of the two
 ; halves, picks according to assumption
+; termination since the search inteval is halved each step,
+; the function terminates after n steps when n >= log(2)S1 - log(2)ε,
+; where S1 is the initial interval width
 (check-satisfied (find-root poly 3 6)
                  (lambda (x) (<= (* -1 ε) (poly x) ε)))
 (define (find-root f left right)
