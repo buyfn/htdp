@@ -1,6 +1,21 @@
 #lang htdp/isl+
 
 (define ε 0.01)
+(define δ 0.1)
+
+; [Number -> Number] Number Number -> Number
+; computes the area under the graph of f between a and b
+; using divide-and-conquer strategy
+(check-within (integrate-dc (lambda (x) 20) 12 22) 200 ε)
+(check-within (integrate-dc (lambda (x) (* 2 x)) 0 10) 100 ε)
+(check-within (integrate-dc (lambda (x) (* 3 (sqr x))) 0 10) 1000 ε)
+(define (integrate-dc f a b)
+  (cond
+    [(< (- b a) δ) (integrate-kepler f a b)]
+    [else
+     (local ((define mid (+ a (/ (- b a) 2))))
+       (+ (integrate-dc f a mid)
+          (integrate-dc f mid b)))]))
 
 ; [Number -> Number] Number Number -> Number
 ; computes the area under the graph of f between a and b
