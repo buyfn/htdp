@@ -7,12 +7,84 @@
 ; interpretation: (make-posn r c) denotes the square at
 ; the r-th row and c-th column
 
-; A Board is a structure (make-board N [List-of QP])
-; interpretation: (make-board size queens) represents a board of given size
-; and a list of positions where a queen has been placed
-(define-struct board [size queens])
+; N -> [List-of QP]
+; produces a list of all square on a board of size n
+(define (all-squares n)
+  (for*/list ((row n) (col n))
+              (make-posn row col)))
 
-; N -> [Maybe [List-of QP]]
+; A Board is a structure
+; [B] (make-board [N -> B] [B QP -> B] [B -> [List-of QP])
+; interpretation: represents a Board structure with the operations:
+; - make
+; - add-queen
+; - find-open-spots
+(define-struct board [make add-queen find-open-spots])
+
+; A Board-1 is a [List-of QP]
+; interpretation: represents a list of all squares where
+; a queen can be placed
+(define board-1
+  (local ((define (add-queen b qp)
+            (filter (lambda (square)
+                      (not (threatening? qp square))) b)))
+    (make-board all-squares add-queen identity)))
+
+; A Board-2 is a structure (make-board-2 N [List-of QP])
+; interpretateion: (make-board-2 size queens) represents a board
+; of given size and a list of position where a queen has been placed
+(define board-2
+  (local ((define-struct board-2 [size queens])
+          (define (make n) (make-board-2 n '()))
+          (define (add-queen b qp)
+            (make-board-2 (board-2-size b)
+                          (cons qp (board-2-queens b))))
+          (define (find-open-spots b)
+            (local (; QP -> Boolean
+                    ; determines whether no queen on the board
+                    ; threatens given square s
+                    (define (safe-square? s)
+                      (andmap (lambda (q) (not (threatening? q s)))
+                              (board-2-queens b))))
+              (filter safe-square? (all-squares (board-2-size b))))))
+    (make-board make add-queen find-open-spots)))
+
+; A Square is a structure (make-square CI CI Boolean)
+; interpretation: (make-square x y threatened?) represents
+; a square on a board in column y, row x and threatened? = #true if
+; the square is threatened by a queen on a board
+(define-struct square [x y threatened?])
+
+; Square -> QP
+; converts a Square to QP
+(define (square->qp s)
+  (make-posn (square-x s)
+             (square-y s)))
+
+; A Board-3 is a [List-of Square]
+; interpretation: represents all squares on a given board
+(define board-3
+  (local ((define (make n)
+            (map (lambda (s)
+                   (make-square (posn-x s)
+                                (posn-y s)
+                                #false)) (all-squares n)))
+          (define (add-queen b qp)
+            (map (lambda (s)
+                   (match s
+                     [(square x y #false)
+                      (if (threatening? qp (make-posn x y))
+                          (make-square x y #true)
+                          s)]
+                     [(square x y #true) s]))
+                 b))
+          (define (find-open-spots b)
+            (map square->qp
+                 (filter (lambda (s) (false? (square-threatened? s)))
+                         b))))
+    (make-board make add-queen find-open-spots)))
+
+; [B] Board B N -> [Maybe [List-of QP]]
 ; finds a solution to the n queens problem
 ; data example: [List-of QP]
 (define 4QUEEN-SOLUTION-1
@@ -21,16 +93,21 @@
 (define 4QUEEN-SOLUTION-2
   (list (make-posn 0 2) (make-posn 1 0)
         (make-posn 2 3) (make-posn 3 1)))
-(check-satisfied (n-queens 4) (n-queens-solution? 4))
-(define (n-queens n)
-  (place-queens (board0 n) n))
+(check-satisfied (n-queens board-1 4) (n-queens-solution? 4))
+(check-satisfied (n-queens board-2 4) (n-queens-solution? 4))
+(check-satisfied (n-queens board-3 4) (n-queens-solution? 4))
+(define (n-queens board-type n)
+  (place-queens board-type (board0 board-type n) n))
 
-; Board N -> [Maybe [List-of QP]]
+; [B] Board B N -> [Maybe [List-of QP]]
 ; places n queens on board; otherwise, returns #false
-(define (place-queens a-board n)
+(define (place-queens board-type a-board n)
   (cond
     [(zero? n) '()]
-    [else (place-queens/list (find-open-spots a-board) a-board n)]))
+    [else (place-queens/list board-type
+                             (find-open-spots board-type a-board)
+                             a-board
+                             n)]))
 
 ; [List-of QP] Board N -> [Maybe [List-of QP]]
 ; places n queens on board by trying to place the first queen into
@@ -40,48 +117,77 @@
 ; each recursive call to place-queens/list decreases the length of open-spots,
 ; until it's empty while n stays the same, so only finitely many calls happen
 ; before n decreases
-(define (place-queens/list open-spots a-board n)
+(define (place-queens/list board-type open-spots a-board n)
   (cond
     [(empty? open-spots) #false]
     [else (local ((define candidate
-                    (place-queens (add-queen a-board (first open-spots))
+                    (place-queens board-type
+                                  (add-queen board-type a-board (first open-spots))
                                   (- n 1))))
             (cond
               [(boolean? candidate)
-               (place-queens/list (rest open-spots) a-board n)]
+               (place-queens/list board-type (rest open-spots) a-board n)]
               [else (cons (first open-spots) candidate)]))]))
 
-; N -> Board
+; Board N -> Board
 ; creates the initial n by n board
-(define (board0 n)
-  (make-board n '()))
+(define (board0 board-type n)
+  ((board-make board-type) n))
 
-; Board QP -> Board
+; [B] Board B QP -> Board
 ; places a queen at qp on a-board
-(define (add-queen a-board qp)
-  (make-board (board-size a-board)
-              (cons qp (board-queens a-board))))
+;; (define (add-queen a-board qp)
+;;   (make-board (board-size a-board)
+;;               (cons qp (board-queens a-board))))
+(define (add-queen board-type b qp)
+  ((board-add-queen board-type) b qp))
 
-; Board -> [List-of QP]
+; [B] Board B -> [List-of QP]
 ; finds spots where it is still safe to place a queen
-(check-expect
- (find-open-spots (make-board 2 (list (make-posn 0 0))))
- '())
-(check-expect
- (find-open-spots (make-board 3 (list (make-posn 0 0))))
- (list (make-posn 1 2) (make-posn 2 1)))
-(define (find-open-spots a-board)
-  (local ((define size (board-size a-board))
-          (define all-squares
-            (for*/list ((row size) (col size))
-              (make-posn row col)))
-          (define queens (board-queens a-board))
-          ; QP -> Boolean
-          ; determines whether no queen on the board
-          ; threatens given square s
-          (define (safe-square? s)
-            (andmap (lambda (q) (not (threatening? q s))) queens)))
-    (filter safe-square? all-squares)))
+; Board-1
+(check-expect (find-open-spots board-1 (board0 board-1 2))
+              (list (make-posn 0 0) (make-posn 0 1)
+                    (make-posn 1 0) (make-posn 1 1)))
+(check-expect (find-open-spots board-1
+                               (add-queen board-1
+                                          (board0 board-1 2)
+                                          (make-posn 0 0)))
+              '())
+(check-expect (find-open-spots board-1
+                               (add-queen board-1
+                                          (board0 board-1 3)
+                                          (make-posn 0 0)))
+              (list (make-posn 1 2) (make-posn 2 1)))
+; Board-2
+(check-expect (find-open-spots board-2 (board0 board-2 2))
+              (list (make-posn 0 0) (make-posn 0 1)
+                    (make-posn 1 0) (make-posn 1 1)))
+(check-expect (find-open-spots board-2
+                               (add-queen board-2
+                                          (board0 board-2 2)
+                                          (make-posn 0 0)))
+              '())
+(check-expect (find-open-spots board-2
+                               (add-queen board-2
+                                          (board0 board-2 3)
+                                          (make-posn 0 0)))
+              (list (make-posn 1 2) (make-posn 2 1)))
+; Board-3
+(check-expect (find-open-spots board-3 (board0 board-3 2))
+              (list (make-posn 0 0) (make-posn 0 1)
+                    (make-posn 1 0) (make-posn 1 1)))
+(check-expect (find-open-spots board-3
+                               (add-queen board-3
+                                          (board0 board-3 2)
+                                          (make-posn 0 0)))
+              '())
+(check-expect (find-open-spots board-3
+                               (add-queen board-3
+                                          (board0 board-3 3)
+                                          (make-posn 0 0)))
+              (list (make-posn 1 2) (make-posn 2 1)))
+(define (find-open-spots board-type b)
+  ((board-find-open-spots board-type) b))
 
 ; [X] [List-of X] [List-of X] -> Boolean
 ; determines whether two lists contain the same items,
